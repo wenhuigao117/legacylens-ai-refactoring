@@ -15,6 +15,8 @@ interface RefactorResult {
   changes: string[];
   summary: string;
   scores: Scores;
+  tests?: string;
+  test_framework?: string;
 }
  
 function ScoreRow({ label, before, after, lowerIsBetter = false }: {
@@ -42,7 +44,9 @@ function App() {
   const [result, setResult] = useState<RefactorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState<boolean[]>([]);
- 
+  const [tests, setTests] = useState<string | null>(null);
+  const [loadingTests, setLoadingTests] = useState(false);
+
   const handleRefactor = async () => {
     setLoading(true);
     try {
@@ -53,15 +57,31 @@ function App() {
       });
       const data = await response.json();
       setResult(data);
-      setAccepted(new Array(data.changes.length).fill(false));
+      setAccepted(new Array((data.changes || []).length).fill(false));
     } catch (e) {
       alert("Error connecting to backend");
     }
     setLoading(false);
   };
- 
+
+  const handleGenerateTests = async () => {
+    if (!result) return;
+    setLoadingTests(true);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/generate-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: result.refactored_code, language }),
+      });
+      const data = await response.json();
+      setTests(data.tests);
+    } catch (e) {
+      alert("Error generating tests");
+    }
+    setLoadingTests(false);
+  };
+
   const acceptedCount = accepted.filter(Boolean).length;
- 
   return (
     <div style={{ fontFamily: "monospace", padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>🔧 LegacyLens — AI Code Refactoring</h1>
@@ -147,7 +167,7 @@ function App() {
             </div>
           ))}
  
-          {acceptedCount > 0 && (
+{acceptedCount > 0 && (
             <div style={{ marginTop: "24px", padding: "16px", background: "#f5f5f5", borderRadius: "4px" }}>
               <h3>Refactoring Report</h3>
               <p><strong>Accepted ({acceptedCount}):</strong></p>
@@ -160,10 +180,29 @@ function App() {
               ))}
             </div>
           )}
+
+          <div style={{ marginTop: "24px" }}>
+            <button
+              onClick={handleGenerateTests}
+              disabled={loadingTests}
+              style={{ padding: "10px 24px", fontSize: "16px", cursor: "pointer", background: "#0070f3", color: "white", border: "none" }}
+            >
+              {loadingTests ? "Generating Tests..." : "Generate Unit Tests"}
+            </button>
+
+            {tests && (
+              <div style={{ marginTop: "16px" }}>
+                <h3>Generated Unit Tests</h3>
+                <pre style={{ background: "#1e1e1e", color: "#d4d4d4", padding: "16px", borderRadius: "4px", overflow: "auto" }}>
+                  {tests}
+                </pre>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 }
- 
+
 export default App;
