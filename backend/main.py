@@ -1,25 +1,26 @@
 import anthropic
 import json
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+ 
 app = FastAPI()
-
+ 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Paste your Anthropic API key here
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", "")
-
+ 
+# Paste your Anthropic API key here, or set ANTHROPIC_API_KEY environment variable
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+ 
 class RefactorRequest(BaseModel):
     code: str
     language: str = "python"
-
+ 
 @app.post("/refactor")
 async def refactor_code(request: RefactorRequest):
     try:
@@ -30,10 +31,27 @@ async def refactor_code(request: RefactorRequest):
                 {
                     "role": "user",
                     "content": f"""You are an expert software engineer. Refactor this {request.language} code.
-
+ 
 Return ONLY a JSON object, no markdown, no backticks, no extra text:
-{{"original_code": "...", "refactored_code": "...", "changes": ["change 1", "change 2"], "summary": "..."}}
-
+{{
+  "original_code": "...",
+  "refactored_code": "...",
+  "changes": ["change 1", "change 2"],
+  "summary": "...",
+  "scores": {{
+    "maintainability_before": 55,
+    "maintainability_after": 82,
+    "complexity_before": 70,
+    "complexity_after": 40,
+    "readability_before": 60,
+    "readability_after": 85
+  }}
+}}
+ 
+Replace the example numbers above with actual scores for the code.
+Maintainability and readability: higher is better (0-100).
+Complexity: lower is better (0-100).
+ 
 Code:
 {request.code}"""
                 }
@@ -48,7 +66,8 @@ Code:
         return result
     except Exception as e:
         return {"error": str(e)}
-
+ 
 @app.get("/")
 def root():
     return {"status": "LegacyLens backend running"}
+ 

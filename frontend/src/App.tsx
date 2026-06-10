@@ -1,19 +1,48 @@
 import { useState } from "react";
-
+ 
+interface Scores {
+  maintainability_before: number;
+  maintainability_after: number;
+  complexity_before: number;
+  complexity_after: number;
+  readability_before: number;
+  readability_after: number;
+}
+ 
 interface RefactorResult {
   original_code: string;
   refactored_code: string;
   changes: string[];
   summary: string;
+  scores: Scores;
 }
-
+ 
+function ScoreRow({ label, before, after, lowerIsBetter = false }: {
+  label: string;
+  before: number;
+  after: number;
+  lowerIsBetter?: boolean;
+}) {
+  const improved = lowerIsBetter ? after < before : after > before;
+  const arrow = improved ? "▲" : "▼";
+  const color = improved ? "green" : "red";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+      <span style={{ width: "140px" }}>{label}</span>
+      <span style={{ color: "gray" }}>{before}</span>
+      <span>→</span>
+      <span style={{ color, fontWeight: "bold" }}>{after} {arrow}</span>
+    </div>
+  );
+}
+ 
 function App() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("python");
   const [result, setResult] = useState<RefactorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState<boolean[]>([]);
-
+ 
   const handleRefactor = async () => {
     setLoading(true);
     try {
@@ -30,14 +59,14 @@ function App() {
     }
     setLoading(false);
   };
-
+ 
   const acceptedCount = accepted.filter(Boolean).length;
-
+ 
   return (
     <div style={{ fontFamily: "monospace", padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>🔧 LegacyLens — AI Code Refactoring</h1>
       <p>Powered by Claude (Anthropic)</p>
-
+ 
       <div style={{ marginBottom: "16px" }}>
         <label>Language: </label>
         <select value={language} onChange={e => setLanguage(e.target.value)}>
@@ -46,7 +75,7 @@ function App() {
           <option value="java">Java</option>
         </select>
       </div>
-
+ 
       <textarea
         rows={10}
         style={{ width: "100%", fontSize: "14px", padding: "8px" }}
@@ -54,7 +83,7 @@ function App() {
         value={code}
         onChange={e => setCode(e.target.value)}
       />
-
+ 
       <button
         onClick={handleRefactor}
         disabled={loading || !code}
@@ -62,12 +91,21 @@ function App() {
       >
         {loading ? "Analyzing..." : "Refactor with Claude"}
       </button>
-
+ 
       {result && (
         <div style={{ marginTop: "32px" }}>
           <h2>Summary</h2>
           <p>{result.summary}</p>
-
+ 
+          {result.scores && (
+            <div style={{ marginBottom: "24px", padding: "16px", background: "#f9f9f9", borderRadius: "4px" }}>
+              <h3>Refactoring Score</h3>
+              <ScoreRow label="Maintainability" before={result.scores.maintainability_before} after={result.scores.maintainability_after} />
+              <ScoreRow label="Complexity" before={result.scores.complexity_before} after={result.scores.complexity_after} lowerIsBetter />
+              <ScoreRow label="Readability" before={result.scores.readability_before} after={result.scores.readability_after} />
+            </div>
+          )}
+ 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
               <h3>Original Code</h3>
@@ -82,12 +120,11 @@ function App() {
               </pre>
             </div>
           </div>
-
+ 
           <h3>
-            Changes (Human-in-the-Loop Review) —{" "}
-            {acceptedCount} / {result.changes.length} Accepted
+            Changes (Human-in-the-Loop Review) — {acceptedCount} / {result.changes.length} Accepted
           </h3>
-
+ 
           {result.changes.map((change, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
               <span>{accepted[i] ? "✓" : "✗"} {change}</span>
@@ -109,7 +146,7 @@ function App() {
               </button>
             </div>
           ))}
-
+ 
           {acceptedCount > 0 && (
             <div style={{ marginTop: "24px", padding: "16px", background: "#f5f5f5", borderRadius: "4px" }}>
               <h3>Refactoring Report</h3>
@@ -128,5 +165,5 @@ function App() {
     </div>
   );
 }
-
+ 
 export default App;
