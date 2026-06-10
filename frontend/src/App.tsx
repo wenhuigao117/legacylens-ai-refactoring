@@ -46,6 +46,8 @@ function App() {
   const [accepted, setAccepted] = useState<boolean[]>([]);
   const [tests, setTests] = useState<string | null>(null);
   const [loadingTests, setLoadingTests] = useState(false);
+  const [readme, setReadme] = useState<string | null>(null);
+  const [loadingReadme, setLoadingReadme] = useState(false);
 
   const handleRefactor = async () => {
     setLoading(true);
@@ -80,13 +82,29 @@ function App() {
     }
     setLoadingTests(false);
   };
+  const handleGenerateReadme = async () => {
+  if (!result) return;
+  setLoadingReadme(true);
+  try {
+    const response = await fetch("http://127.0.0.1:8000/generate-readme", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: result.refactored_code, language }),
+    });
+    const data = await response.json();
+    setReadme(data.readme);
+  } catch (e) {
+    alert("Error generating README");
+  }
+  setLoadingReadme(false);
+};
 
   const acceptedCount = accepted.filter(Boolean).length;
   return (
     <div style={{ fontFamily: "monospace", padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>🔧 LegacyLens — AI Code Refactoring</h1>
       <p>Powered by Claude (Anthropic)</p>
- 
+
       <div style={{ marginBottom: "16px" }}>
         <label>Language: </label>
         <select value={language} onChange={e => setLanguage(e.target.value)}>
@@ -95,7 +113,7 @@ function App() {
           <option value="java">Java</option>
         </select>
       </div>
- 
+
       <textarea
         rows={10}
         style={{ width: "100%", fontSize: "14px", padding: "8px" }}
@@ -103,7 +121,7 @@ function App() {
         value={code}
         onChange={e => setCode(e.target.value)}
       />
- 
+
       <button
         onClick={handleRefactor}
         disabled={loading || !code}
@@ -111,12 +129,12 @@ function App() {
       >
         {loading ? "Analyzing..." : "Refactor with Claude"}
       </button>
- 
+
       {result && (
         <div style={{ marginTop: "32px" }}>
           <h2>Summary</h2>
           <p>{result.summary}</p>
- 
+
           {result.scores && (
             <div style={{ marginBottom: "24px", padding: "16px", background: "#f9f9f9", borderRadius: "4px" }}>
               <h3>Refactoring Score</h3>
@@ -125,7 +143,7 @@ function App() {
               <ScoreRow label="Readability" before={result.scores.readability_before} after={result.scores.readability_after} />
             </div>
           )}
- 
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
               <h3>Original Code</h3>
@@ -140,11 +158,11 @@ function App() {
               </pre>
             </div>
           </div>
- 
+
           <h3>
             Changes (Human-in-the-Loop Review) — {acceptedCount} / {result.changes.length} Accepted
           </h3>
- 
+
           {result.changes.map((change, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
               <span>{accepted[i] ? "✓" : "✗"} {change}</span>
@@ -166,8 +184,8 @@ function App() {
               </button>
             </div>
           ))}
- 
-{acceptedCount > 0 && (
+
+          {acceptedCount > 0 && (
             <div style={{ marginTop: "24px", padding: "16px", background: "#f5f5f5", borderRadius: "4px" }}>
               <h3>Refactoring Report</h3>
               <p><strong>Accepted ({acceptedCount}):</strong></p>
@@ -199,6 +217,26 @@ function App() {
               </div>
             )}
           </div>
+
+          <div style={{ marginTop: "16px" }}>
+            <button
+              onClick={handleGenerateReadme}
+              disabled={loadingReadme}
+              style={{ padding: "10px 24px", fontSize: "16px", cursor: "pointer", background: "#6f42c1", color: "white", border: "none" }}
+            >
+              {loadingReadme ? "Generating README..." : "Generate README"}
+            </button>
+
+            {readme && (
+              <div style={{ marginTop: "16px" }}>
+                <h3>Generated README</h3>
+                <pre style={{ background: "#1e1e1e", color: "#d4d4d4", padding: "16px", borderRadius: "4px", overflow: "auto", whiteSpace: "pre-wrap" }}>
+                  {readme}
+                </pre>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
     </div>

@@ -33,24 +33,9 @@ async def refactor_code(request: RefactorRequest):
                     "content": f"""You are an expert software engineer. Refactor this {request.language} code.
  
 Return ONLY a JSON object, no markdown, no backticks, no extra text:
-{{
-  "original_code": "...",
-  "refactored_code": "...",
-  "changes": ["change 1", "change 2"],
-  "summary": "...",
-  "scores": {{
-    "maintainability_before": 55,
-    "maintainability_after": 82,
-    "complexity_before": 70,
-    "complexity_after": 40,
-    "readability_before": 60,
-    "readability_after": 85
-  }}
-}}
+{{"original_code": "...", "refactored_code": "...", "changes": ["change 1", "change 2"], "summary": "...", "scores": {{"maintainability_before": 55, "maintainability_after": 82, "complexity_before": 70, "complexity_after": 40, "readability_before": 60, "readability_after": 85}}}}
  
-Replace the example numbers above with actual scores for the code.
-Maintainability and readability: higher is better (0-100).
-Complexity: lower is better (0-100).
+Replace the example numbers with actual scores. Maintainability and readability: higher is better (0-100). Complexity: lower is better (0-100).
  
 Code:
 {request.code}"""
@@ -66,7 +51,7 @@ Code:
         return result
     except Exception as e:
         return {"error": str(e)}
-    
+ 
 @app.post("/generate-tests")
 async def generate_tests(request: RefactorRequest):
     try:
@@ -77,10 +62,10 @@ async def generate_tests(request: RefactorRequest):
                 {
                     "role": "user",
                     "content": f"""You are an expert software engineer. Write unit tests for this {request.language} code.
-
+ 
 Return ONLY a JSON object, no markdown, no backticks, no extra text:
 {{"tests": "the complete test code as a string", "framework": "pytest or unittest or jest"}}
-
+ 
 Code:
 {request.code}"""
                 }
@@ -96,7 +81,27 @@ Code:
     except Exception as e:
         return {"error": str(e)}
  
+@app.post("/generate-readme")
+async def generate_readme(request: RefactorRequest):
+    try:
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""You are a technical writer. Generate a README.md for this {request.language} code. Include: title, description, usage example, and parameters. Keep it concise.
+ 
+Code:
+{request.code}"""
+                }
+            ]
+        )
+        text = message.content[0].text.strip()
+        return {"readme": text, "function_summary": ""}
+    except Exception as e:
+        return {"error": str(e)}
+ 
 @app.get("/")
 def root():
     return {"status": "LegacyLens backend running"}
- 
