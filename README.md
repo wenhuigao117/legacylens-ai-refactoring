@@ -1,4 +1,4 @@
-# LegacyLens — AI-Powered Code Refactoring Tool
+# LegacyLens：AI-Powered Code Refactoring Tool
 
 A full-stack tool that uses Claude (Anthropic) to analyze and refactor legacy code, with a Human-in-the-Loop review interface.
 
